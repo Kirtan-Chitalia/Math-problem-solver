@@ -1,0 +1,30 @@
+# === Core ===
+opencv-python
+numpy
+pillow
+sympy
+
+# === OCR ===
+pix2text
+
+# === LLM ===
+openai                  # OpenRouter uses OpenAI-compatible API
+httpx                   # Async HTTP client for API calls
+
+# === Multi-Agent ===
+langgraph
+langchain-core
+langchain-openai        # LangChain's OpenAI integration (works with OpenRouter)
+
+# === API ===
+fastapi
+uvicorn[standard]
+python-multipart        # For file uploads
+
+# === Config ===
+pydantic-settings       # Settings management from .env
+
+# === Utilities ===
+rich                    # Pretty console output
+tqdm                    # Progress bars
+python-dotenv           # .env file loading

@@ -1,0 +1,22 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environments
+venv/
+.venv/
+
+# datasets
+data/
+
+# model weights
+*.pt
+*.pth
+*.onnx
+
+# environment variables
+.env
+
+# IDE files
+.vscode/
+.idea/
