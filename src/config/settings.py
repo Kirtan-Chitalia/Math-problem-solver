@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     # Which models to use for each agent role
     SOLVER_MODEL: str = "deepseek/deepseek-v3.2"
     CLASSIFIER_MODEL: str = "anthropic/claude-sonnet-4.6"
-    VISION_MODEL: str = "qwen/qwen3-vl-8b-instruct"
+    VISION_MODEL: str = "qwen/qwen3.5-9b"
 
     # --- OpenRouter API ---
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"

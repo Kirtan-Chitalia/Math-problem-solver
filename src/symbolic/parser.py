@@ -1,6 +1,7 @@
 import re
 import sympy as sp
-from src.utils import get_logger , ParserError
+from src.utils import get_logger, ParserError
+from latex2sympy2 import latex2sympy
 
 logger = get_logger(__name__)
 
@@ -89,33 +90,73 @@ def clean_ocr_text(raw: str) -> str:
     return text
 
 
-def parse_expression(raw: str):
-    
-    cleaned = clean_ocr_text(raw)
+def _strip_latex_delimiters(raw: str) -> str:
+    """Strip $$, $, and \\[ \\] LaTeX delimiters."""
+    text = raw.strip()
+    # Remove $$ ... $$ or $ ... $
+    if text.startswith("$$") and text.endswith("$$"):
+        text = text[2:-2].strip()
+    elif text.startswith("$") and text.endswith("$"):
+        text = text[1:-1].strip()
+    # Remove \[ ... \]
+    if text.startswith("\\[") and text.endswith("\\]"):
+        text = text[2:-2].strip()
+    return text
 
+
+def parse_expression(raw: str) -> dict:
+    """
+    Parse a math expression/equation. Two-layer approach:
+    1. Try SymPy's LaTeX parser (handles complex LaTeX natively)
+    2. Fall back to manual clean_ocr_text + sympify
+    """
+    logger.info(f"Parsing expression: {raw[:80]}...")
+
+    # Strip LaTeX delimiters first
+    stripped = _strip_latex_delimiters(raw)
+
+    # === Layer 1: Try parse_latex (handles \frac, \sqrt, \cos, etc.) ===
     try:
+        if "=" in stripped:
+            parts = stripped.split("=", 1)
+            lhs_expr = latex2sympy(parts[0].strip())
+            rhs_expr = latex2sympy(parts[1].strip())
+            logger.info(f"LaTeX parsed as equation: {lhs_expr} = {rhs_expr}")
+            return {
+                "type": "equation",
+                "lhs": lhs_expr,
+                "rhs": rhs_expr,
+                "raw": stripped
+            }
+        else:
+            expr = latex2sympy(stripped)
+            logger.info(f"LaTeX parsed as expression: {expr}")
+            return {
+                "type": "expression",
+                "expr": expr,
+                "raw": stripped
+            }
+    except Exception as latex_err:
+        logger.warning(f"LaTeX parser failed: {latex_err}, trying manual cleanup")
+
+    # === Layer 2: Fallback to manual clean + sympify ===
+    try:
+        cleaned = clean_ocr_text(raw)
 
         if "=" in cleaned:
-
             parts = cleaned.split("=")
-
-            lhs = parts[0]
-            rhs = parts[-1]
-
-            lhs_expr = sp.sympify(lhs)
-            rhs_expr = sp.sympify(rhs)
-            logger.info(f"Parsed as equation: {lhs_expr} = {rhs_expr}")
+            lhs_expr = sp.sympify(parts[0])
+            rhs_expr = sp.sympify(parts[-1])
+            logger.info(f"Manual parsed as equation: {lhs_expr} = {rhs_expr}")
             return {
                 "type": "equation",
                 "lhs": lhs_expr,
                 "rhs": rhs_expr,
                 "raw": cleaned
             }
-
         else:
-
             expr = sp.sympify(cleaned)
-            logger.info(f"Parsed as expression: {expr}")
+            logger.info(f"Manual parsed as expression: {expr}")
             return {
                 "type": "expression",
                 "expr": expr,
@@ -123,5 +164,5 @@ def parse_expression(raw: str):
             }
 
     except Exception as e:
-        logger.error(f"Parse failed: {str(e)}")
-        raise ParserError(f"Failed to parse: {cleaned}", details={"raw": raw, "cleaned": cleaned})
+        logger.error(f"Both parsers failed: {str(e)}")
+        raise ParserError(f"Failed to parse: {stripped}", details={"raw": raw, "stripped": stripped})

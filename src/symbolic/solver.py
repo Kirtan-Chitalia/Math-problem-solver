@@ -102,14 +102,18 @@ def solve(parsed_result: dict, problem_type: str) -> dict:
             )
 
         elif problem_type == "calculus_derivative":
-            return solve_calculus_derivative(
-                parsed_result["expr"]
-            )
+            # Handle both {"expr": ...} and {"lhs": y, "rhs": f(x)}
+            expr = parsed_result.get("expr") or parsed_result.get("rhs")
+            if expr is None:
+                raise SolverError("No expression found to differentiate")
+            return solve_calculus_derivative(expr)
 
         elif problem_type == "calculus_integral":
-            return solve_calculus_integral(
-                parsed_result["expr"]
-            )
+            # Handle both {"expr": ...} and {"lhs": y, "rhs": f(x)}
+            expr = parsed_result.get("expr") or parsed_result.get("rhs")
+            if expr is None:
+                raise SolverError("No expression found to integrate")
+            return solve_calculus_integral(expr)
 
         else:
             raise SolverError(f"Unsupported problem type: {problem_type}")
