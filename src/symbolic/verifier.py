@@ -14,57 +14,67 @@ def verify(parsed_result: dict, solution: dict) -> dict:
     try:
         details = []
         verified = True
+        # Decide verification type based on parsed_result and solver steps
+        steps_str = str(solution.get("steps", [])).lower()
 
-        # Equation verification (algebra)
-        if "lhs" in parsed_result and "rhs" in parsed_result:
-            lhs = sp.sympify(parsed_result["lhs"])
-            rhs = sp.sympify(parsed_result["rhs"])
-            answers = solution["answer"]
-            x = sp.Symbol("x")
-
-            if not isinstance(answers, (list, tuple)):
-                answers = [answers]
-
-            for ans in answers:
-                check = (lhs - rhs).subs(x, ans)
-                simplified = sp.simplify(check)
-                correct = simplified == 0
-                details.append({"value": ans, "check": simplified, "correct": correct})
-                if not correct:
-                    verified = False
-
-        # Derivative verification — with timeout
-        elif "expr" in parsed_result and "derivative" in str(solution.get("steps", [])).lower():
+        # --- Calculus derivative verification ---
+        if "derivative" in steps_str:
             try:
-                expr = sp.sympify(parsed_result["expr"])
+                # expression may be under 'expr' or 'rhs' (for y = f(x) style)
+                expr_src = parsed_result.get("expr") or parsed_result.get("rhs")
+                expr = sp.sympify(expr_src)
                 answer = sp.sympify(solution["answer"])
                 x = sp.Symbol("x")
                 computed = sp.diff(expr, x)
-                # Use equals() instead of simplify — much faster
                 correct = computed.equals(answer)
                 if correct is None:
-                    correct = False  # equals() returns None if it can't determine
-                details.append({"expected": str(computed)[:100], "given": str(answer)[:100], "correct": correct})
+                    correct = False
+                details.append({"expected": str(computed)[:200], "given": str(answer)[:200], "correct": correct})
                 verified = correct
             except TimeoutError:
                 logger.warning("Verification timed out")
                 return {"verified": "timeout", "details": "Expression too complex"}
 
-        # Integral verification — with timeout  
-        elif "expr" in parsed_result and "integral" in str(solution.get("steps", [])).lower():
+        # --- Calculus integral verification ---
+        elif "integral" in steps_str:
             try:
-                expr = sp.sympify(parsed_result["expr"])
+                expr_src = parsed_result.get("expr") or parsed_result.get("rhs")
+                expr = sp.sympify(expr_src)
                 answer = sp.sympify(solution["answer"])
                 x = sp.Symbol("x")
                 computed = sp.diff(answer, x)
                 correct = computed.equals(expr)
                 if correct is None:
                     correct = False
-                details.append({"expected": str(expr)[:100], "derived": str(computed)[:100], "correct": correct})
+                details.append({"expected": str(expr)[:200], "derived": str(computed)[:200], "correct": correct})
                 verified = correct
             except TimeoutError:
                 logger.warning("Verification timed out")
                 return {"verified": "timeout", "details": "Expression too complex"}
+
+        # --- Algebra / direct equation verification ---
+        elif "lhs" in parsed_result and "rhs" in parsed_result:
+            lhs = sp.sympify(parsed_result["lhs"])
+            rhs = sp.sympify(parsed_result["rhs"])
+            answers = solution.get("answer")
+            x = sp.Symbol("x")
+
+            if not isinstance(answers, (list, tuple)):
+                answers = [answers]
+
+            for ans in answers:
+                # Only substitute when the answer is a concrete value for the variable
+                try:
+                    check = (lhs - rhs).subs(x, ans)
+                    simplified = sp.simplify(check)
+                    correct = simplified == 0
+                except Exception:
+                    simplified = None
+                    correct = False
+
+                details.append({"value": ans, "check": simplified, "correct": correct})
+                if not correct:
+                    verified = False
 
         else:
             raise VerificationError("Unsupported verification type")
