@@ -37,12 +37,24 @@ def classifier_agent(state: PipelineState) -> dict:
             model=settings.CLASSIFIER_MODEL
         )
 
-        # 4️⃣ Clean response
-        problem_type = response.strip().lower()
+        # 4️⃣ Clean response and robustly extract a valid category
+        resp_text = response.strip().lower()
 
-        # 5️⃣ Validate
-        if problem_type not in VALID_TYPES:
-            logger.warning(f"Unknown classification: {problem_type}, defaulting to algebra")
+        # If the model returned the raw category, use it. Otherwise search
+        # for any known category token inside the output (handles prefixes
+        # like "Output: calculus_derivative" or small explanations).
+        problem_type = None
+        if resp_text in VALID_TYPES:
+            problem_type = resp_text
+        else:
+            for t in VALID_TYPES:
+                if t in resp_text:
+                    problem_type = t
+                    break
+
+        # 5️⃣ Validate fallback
+        if problem_type is None:
+            logger.warning(f"Unknown classification: {resp_text}, defaulting to algebra")
             problem_type = "algebra"
 
         logger.info(f"Classifier result: {problem_type}")

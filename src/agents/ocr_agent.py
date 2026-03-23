@@ -9,40 +9,46 @@ logger = get_logger(__name__)
 
     
 def ocr_agent(state: PipelineState) -> dict:
-    """
-    OCR Agent — extracts math text from an image.
-    Tries Pix2Text first, falls back to LLM Vision if confidence is low.
-    """
     image_path = state["image_path"]
     logger.info(f"OCR Agent processing: {image_path}")
-        
+
     try:
-        # 1. Try Pix2Text first 
+        # ---- Step 1: Pix2Text ----
         result = extract_text(image_path)
-        logger.info(f"Pix2Text result: {result}")
-        # 2. Check confidence against threshold
-        if result["confidence"] >= settings.OCR_CONFIDENCE_THRESHOLD:
-            logger.info("OCR confidence is sufficient. Using Pix2Text result.")
+        logger.info(f"Pix2Text raw result: {result}")
+
+        # Safe extraction
+        text = result.get("text", "")
+        confidence = result.get("confidence", 0.0)
+        source = result.get("source", "pix2text")
+
+        # ---- Step 2: Confidence Check ----
+        if confidence < settings.OCR_CONFIDENCE_THRESHOLD:
+            logger.warning("Low OCR confidence. Falling back to LLM Vision.")
+
+            llm_result = extract_text_with_llm(image_path)
+            logger.info(f"LLM Vision raw result: {llm_result}")
+
+            text = llm_result.get("text", text)
+            confidence = llm_result.get("confidence", confidence)
+            source = llm_result.get("source", "llm")
 
         else:
-            logger.warning("Low OCR confidence. Falling back to LLM Vision.")
-            result = extract_text_with_llm(image_path)
-            logger.info(f"LLM Vision result: {result}")
+            logger.info("Using Pix2Text result")
 
-        # 3. Return the state updates
+        # ---- Step 3: Final Output ----
         return {
-            "ocr_text": result["text"],
-            "ocr_confidence": result["confidence"],
-            "ocr_source": result["source"]
+            "ocr_text": text,
+            "ocr_confidence": confidence,
+            "ocr_source": source
         }
+
     except Exception as e:
-        logger.error(f"OCR Agent failed: {str(e)}")
+        logger.exception("OCR Agent failed")  # 🔥 shows full traceback
 
         return {
             "ocr_text": "",
             "ocr_confidence": 0.0,
             "ocr_source": "error",
-            "error": f"OCR failed: {str(e)}"
+            "error": str(e)
         }
-
-    

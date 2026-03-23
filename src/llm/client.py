@@ -28,6 +28,9 @@ class LLMClient:
             )
             result = response.choices[0].message.content
 
+            if result is None:
+                raise LLMError("LLM returned empty response")
+
             logger.info(f"LLM call successful | model={model}")
             logger.debug(f"Response preview: {result[:100]}")
 
@@ -77,6 +80,9 @@ class LLMClient:
             )
 
             result = response.choices[0].message.content
+
+            if result is None:
+                raise LLMError("Vision model returned empty response")
 
             logger.info(f"Vision LLM call | model={model}")
             logger.debug(f"Response preview: {result[:100]}")

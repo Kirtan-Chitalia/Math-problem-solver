@@ -9,6 +9,18 @@ def clean_ocr_text(raw: str) -> str:
     logger.info(f"Cleaning OCR text: {raw}")
     text = raw.strip()
 
+    # Strip $$ and $ delimiters
+    if text.startswith("$$") and text.endswith("$$"):
+        text = text[2:-2].strip()
+    elif text.startswith("$") and text.endswith("$"):
+        text = text[1:-1].strip()
+
+    # Remove empty \frac{} {} and trailing noise from OCR
+    text = re.sub(r"\\frac\s*\{\s*\}\s*\{\s*\}", "", text)  # \frac{} {}
+    text = re.sub(r",\s*\\tan\s+\w+=.*$", "", text)  # , \tan A=... (trailing noise)
+    text = text.rstrip(". ,")  # trailing dots/commas
+    text = text.strip()
+
     replacements = {
 
         # arithmetic

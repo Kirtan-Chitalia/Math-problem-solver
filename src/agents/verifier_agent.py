@@ -5,31 +5,25 @@ from src.utils import get_logger
 logger = get_logger(__name__)
 
 def verifier_agent(state: PipelineState) -> dict:
-    """Verifier Agent — checks correctness of SymPy solution."""
-
     logger.info("Starting verification agent")
 
     try:
-        # 1️⃣ Get required data
         parsed = state.get("parsed", {})
         sympy_solution = state.get("sympy_solution", {})
 
         answer = sympy_solution.get("answer")
 
-        # 2️⃣ If SymPy has a valid answer → verify
-        if answer is not None:
-            logger.info("Verifying SymPy solution")
-
-            result = verify(parsed, sympy_solution)
-
+        # 🚨 NEW: sanity checks
+        if not parsed:
             return {
-                "verification": result
+                "verification": {
+                    "verified": False,
+                    "details": "Parsed expression missing"
+                }
             }
 
-        # 3️⃣ If SymPy failed → skip verification
-        else:
+        if answer is None:
             logger.warning("Skipping verification: No SymPy answer")
-
             return {
                 "verification": {
                     "verified": "skipped",
@@ -37,13 +31,39 @@ def verifier_agent(state: PipelineState) -> dict:
                 }
             }
 
+        # 🚨 NEW: handle empty / invalid answers
+        if answer == "" or answer == []:
+            return {
+                "verification": {
+                    "verified": False,
+                    "details": "Empty answer from SymPy"
+                }
+            }
+
+        logger.info(f"Answer to verify: {answer}")
+
+        # 🔥 Safe verification
+        try:
+            result = verify(parsed, sympy_solution)
+        except Exception as ve:
+            logger.exception("Verification crashed")
+
+            return {
+                "verification": {
+                    "verified": False,
+                    "details": f"Verification error: {str(ve)}"
+                }
+            }
+
+        return {"verification": result}
+
     except Exception as e:
-        logger.error(f"Verifier agent failed: {str(e)}")
+        logger.exception("Verifier agent failed")
 
         return {
             "verification": {
                 "verified": False,
-                "details": f"Verification failed: {str(e)}"
+                "details": f"Verifier failed: {str(e)}"
             },
-            "error": f"Verifier failed: {str(e)}"
+            "error": str(e)
         }

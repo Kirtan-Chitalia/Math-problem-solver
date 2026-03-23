@@ -1,6 +1,6 @@
 from src.agents.orchestrator import run_pipeline
 
-image_path = "data/hqdefault.jpg"  # Replace with your test image path
+image_path = "data/image.png"  # Replace with your test image path
 
 print("=" * 60)
 print("FULL PIPELINE TEST")
