@@ -54,8 +54,9 @@ class PromptTemplates:
 
     Rules:
     - Show every step clearly
-    - Use LaTeX notation for math expressions
-    - The ANSWER line must contain ONLY the final result
+    - Do NOT use LaTeX formatting (no \frac, \sqrt, \\, \\[, etc.).
+    - Use plain, human-readable text for math (e.g., use "1/(2*sqrt(x))", "^2" for squares, and standard keyboard symbols).
+    - The ANSWER line must contain ONLY the final result, written plainly.
     """
 
     @staticmethod

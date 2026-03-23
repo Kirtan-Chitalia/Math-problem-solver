@@ -23,11 +23,23 @@ def main():
     
     elif args.command == "solve":
         from src.agents.orchestrator import run_pipeline
-        result = run_pipeline(args.image)
-        print(f"📝 OCR: {result.get('ocr_text')}")
-        print(f"📂 Type: {result.get('problem_type')}")
-        print(f"🧮 Solution:\n{result.get('llm_solution', 'N/A')}")
-        print(f"✅ Verified: {result.get('verification', {}).get('verified', 'N/A')}")
+        from rich.console import Console
+        from rich.panel import Panel
+
+        console = Console()
+        
+        with console.status("[bold green]Solving math problem...[/bold green]"):
+            result = run_pipeline(args.image)
+            
+        console.print(f"\n[bold cyan]📝 OCR Text:[/bold cyan] {result.get('ocr_text')}")
+        console.print(f"[bold magenta]📂 Problem Type:[/bold magenta] {result.get('problem_type', 'Unknown').replace('_', ' ').title()}\n")
+        
+        solution = result.get('llm_solution', 'No solution found.')
+        console.print(Panel(solution, title="[bold yellow]🧮 Step-by-Step Solution[/bold yellow]", border_style="yellow", expand=False))
+        
+        verified = result.get('verification', {}).get('verified', 'N/A')
+        v_color = "green" if str(verified).lower() == "true" else "red"
+        console.print(f"[{v_color}]✅ Verified: [bold]{verified}[/bold][/{v_color}]\n")
     
     else:
         parser.print_help()
