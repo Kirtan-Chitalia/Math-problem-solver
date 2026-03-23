@@ -18,19 +18,18 @@ to build a **robust, interpretable, and reliable math-solving system**.
 
 ## 🎯 Example
 
-**Input (Text):**
-
-```
-2x + 3 = 7
-```
+**Input (Image):**
+An image containing `2x + 3 = 7`
 
 **Output:**
 
 ```
+📝 OCR: 2x + 3 = 7
+📂 Type: algebraic_equation
+🧮 Solution:
 Step 1: Subtract 3 from both sides → 2x = 4  
 Step 2: Divide by 2 → x = 2  
-
-✅ Verified: Solution is correct
+✅ Verified: True
 ```
 
 ---
@@ -74,11 +73,11 @@ Each agent operates sequentially and communicates via structured data:
 
 ```json
 {
-  "input": "2x + 3 = 7",
-  "parsed": "Eq(2*x + 3, 7)",
-  "solution": "x = 2",
-  "verified": true,
-  "confidence": 0.94
+  "ocr_text": "2x + 3 = 7",
+  "problem_type": "algebraic_equation",
+  "llm_solution": "Step 1: Subtract 3 from both sides -> 2x = 4\nStep 2: Divide by 2 -> x = 2",
+  "sympy_solution": {"answer": "2"},
+  "verification": {"verified": true}
 }
 ```
 
@@ -123,21 +122,20 @@ Each agent operates sequentially and communicates via structured data:
 ```
 Math-problem-solver/
 │
+├── data/                  # Datasets and uploaded images
+├── notebooks/             # Jupyter notebooks for experimentation
 ├── src/
-│   ├── agents/
-│   │   ├── ocr_agent.py
-│   │   ├── parser_agent.py
-│   │   ├── solver_agent.py
-│   │   └── verifier_agent.py
-│   │
-│   ├── symbolic/
-│   ├── utils/
-│   └── config/
+│   ├── agents/            # Multi-agent orchestrator and definitions
+│   ├── api/               # FastAPI application and routes
+│   ├── config/            # Configuration logs and settings
+│   ├── llm/               # LLM integration (e.g., Gemini)
+│   ├── symbolic/          # SymPy based solver logic
+│   ├── utils/             # Helper utilities
+│   └── vision/            # Image processing and OCR logic
 │
-├── tests/
-│   ├── test_ocr.py
-│   └── test_pipeline.py
-│
+├── tests/                 # Unit and integration tests
+├── build_roadmap.md       # Project roadmap
+├── main.py                # Main CLI entry point
 ├── requirements.txt
 └── README.md
 ```
@@ -173,39 +171,41 @@ pip install -r requirements.txt
 
 ### Run via CLI
 
+Solve a math problem from an image using the orchestrator pipeline:
 ```bash
-python src/main.py --input "2x + 3 = 7"
+python main.py solve <path_to_image>
 ```
 
-### Modes (optional)
+### Start API Server
 
+Run the FastAPI server locally:
 ```bash
---mode explain   # step-by-step solution
---mode fast      # direct answer only
---debug true     # logs each agent step
+python main.py serve
 ```
+**(Default: runs on `http://0.0.0.0:8000`)**
 
 ---
 
-## 🌐 API (Optional Extension)
+## 🌐 API
 
 ```http
 POST /solve
-Content-Type: application/json
-
-{
-  "question": "2x + 3 = 7"
-}
+Content-Type: multipart/form-data
+Body: file=<image_file>
 ```
 
 **Response:**
 
 ```json
 {
-  "answer": "x = 2",
-  "steps": [...],
-  "verified": true,
-  "confidence": 0.94
+  "ocr_text": "2x + 3 = 7",
+  "ocr_confidence": 0.95,
+  "ocr_source": "gemini",
+  "problem_type": "algebraic_equation",
+  "llm_solution": "Step 1: Subtract 3 from both sides...\nStep 2: ...",
+  "sympy_answer": "2",
+  "verified": "True",
+  "error": null
 }
 ```
 
