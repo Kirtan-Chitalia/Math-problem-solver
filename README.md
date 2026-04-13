@@ -260,9 +260,6 @@ python -m tests.test_pipeline      # Full pipeline test
 
 ---
 
-## 📄 License
-
-MIT License — feel free to use, modify, and distribute.
 
 ---
 
